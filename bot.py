@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Nitro Movies Bot — Temur uchun sozlangan (yangilangan)
+# Nitro Movies Bot — Temur uchun to‘liq ishlaydigan versiya
 
 import os
 import sqlite3
@@ -31,7 +31,6 @@ def db_init():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
-    # eski DB uchun name ustunini qo‘shish
     try:
         c.execute("ALTER TABLE media ADD COLUMN name TEXT DEFAULT ''")
     except sqlite3.OperationalError:
@@ -133,7 +132,7 @@ def cmd_start(message: telebot.types.Message):
 def cmd_id(message: telebot.types.Message):
     bot.reply_to(message, f"Sizning ID: <code>{message.from_user.id}</code>")
 
-# ====== Menyu tugmalari ======
+# ====== Kategoriya va sub-menu ======
 @bot.message_handler(func=lambda m: m.text in ["🎥 Kinolar", "📺 Seriallar", "🎞 Multfilmlar"])
 def menu_categories(message: telebot.types.Message):
     mapping = {
@@ -263,6 +262,14 @@ def handle_del(message):
 @bot.message_handler(func=lambda m: m.text and not m.text.startswith("/"))
 def by_code(message):
     text = message.text.strip()
+
+    # ========== ORQAGA TUGMASI ==========
+    if text == "⬅️ Orqaga":
+        is_admin = message.from_user.id in ADMIN_IDS
+        bot.send_message(message.chat.id, "🔹 Asosiy menyu:", reply_markup=main_menu(is_admin))
+        return
+
+    # ========== KODNI TEKSHIRISH ==========
     if " - " in text:
         code = text.split(" - ")[0]
         row = db_get(code)
@@ -304,7 +311,7 @@ def send_media_from_row(chat_id, row):
     except Exception as e:
         bot.send_message(chat_id, f"⚠️ Yuborishda xato: {e}")
 
-# ============================ FLASK WEB SERVER (PORT OCHISH) ============================
+# ============================ FLASK WEB SERVER ============================
 app = Flask(__name__)
 
 @app.route("/")
@@ -322,4 +329,5 @@ if __name__ == "__main__":
     print("Bot ishga tushdi...")
     bot.skip_pending = True
     bot.infinity_polling(timeout=30, long_polling_timeout=30)
+
 
